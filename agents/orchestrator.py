@@ -1,0 +1,49 @@
+from __future__ import annotations
+
+from datetime import timedelta
+from pathlib import Path
+
+from agents.life_guard_agent import run_life_guard
+from agents.recorder_agent import run_recorder
+from agents.search_fact_agent import answer_life_query
+from agents.summary_agent import summarize_month, summarize_week
+from core.time_utils import ist_today
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LIFE_LOG_ROOT = REPO_ROOT / "life_log"
+
+
+def run_record_import(raw_text: str) -> dict:
+    result = run_recorder(REPO_ROOT, LIFE_LOG_ROOT, raw_text)
+    return {
+        "daily_path": result.daily_path,
+        "calendar_path": result.calendar_path,
+        "commit": result.commit,
+        "metadata": result.metadata,
+    }
+
+
+def run_summarize_yesterday() -> dict:
+    d = ist_today() - timedelta(days=1)
+    result = summarize_week(REPO_ROOT, LIFE_LOG_ROOT, target_day=d)
+    return {"summary_path": result.summary_path, "period": result.period, "commit": result.commit}
+
+
+def run_summarize_month() -> dict:
+    result = summarize_month(REPO_ROOT, LIFE_LOG_ROOT)
+    return {"summary_path": result.summary_path, "period": result.period, "commit": result.commit}
+
+
+def run_life_hygiene() -> dict:
+    report = run_life_guard(REPO_ROOT, LIFE_LOG_ROOT, lookback_days=14, auto_fix=True)
+    return {
+        "report_path": report.report_path,
+        "created_files": report.created_files,
+        "fixed_files": report.fixed_files,
+        "commit": report.commit,
+    }
+
+
+def run_search(question: str) -> dict:
+    answer = answer_life_query(REPO_ROOT, LIFE_LOG_ROOT, question)
+    return {"answer": answer.answer, "sources": answer.sources, "confidence": answer.confidence}

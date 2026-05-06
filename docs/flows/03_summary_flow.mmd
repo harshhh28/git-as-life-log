@@ -1,0 +1,19 @@
+flowchart TD
+  trigger[TriggerSummaryFromUIOrNightly] --> choose{SummaryPeriod}
+  choose -->|Weekly| weekRange[ComputeWeekRangeIST]
+  choose -->|Monthly| monthRange[ComputeMonthRangeIST]
+
+  weekRange --> collect[CollectDailyMarkdownInRange]
+  monthRange --> collect
+  collect --> hasData{AnyDailyEntriesFound}
+  hasData -->|No| fail[ReturnNoDataError]
+  hasData -->|Yes| summarize[GroqSummaryGeneration]
+
+  summarize --> outFile{OutputFilePath}
+  outFile -->|Weekly| weeklyFile[life_log_journal_weekly]
+  outFile -->|Monthly| monthlyFile[life_log_journal_monthly]
+
+  weeklyFile --> write[WriteSummaryMarkdownWithFrontmatter]
+  monthlyFile --> write
+  write --> commit[GitCommitSummary]
+  commit --> result[ReturnSummaryPathAndCommit]

@@ -1,0 +1,47 @@
+flowchart TD
+  webUser[UserInStreamlit] --> ui[streamlit_app_main]
+  tgUser[UserInTelegram] --> tg[bot_telegram_bot]
+  ui --> nav{UserAction}
+  tg --> tgNav{TelegramAction}
+
+  nav -->|DailyJournalView| dailyView[ReadDailyMarkdown]
+  nav -->|SummariesView| summaryView[ReadWeeklyMonthlyMarkdown]
+  nav -->|AskYourLife| askFlow[SearchFactFlow]
+  nav -->|RunAgentsRecordImport| recordFlow[RecorderFlow]
+  nav -->|RunAgentsSummarizeToday| todayFlow[TodaySummaryFlow]
+  nav -->|RunAgentsSummarize| summarizeFlow[SummaryFlow]
+  nav -->|RunAgentsHygiene| hygieneFlow[LifeGuardFlow]
+  tgNav -->|AskYourLife| askFlow
+  tgNav -->|RecordNote| dedupe{DuplicateMessageWindow}
+  dedupe -->|Duplicate| dedupeReturn[AlreadyRecordedNoOp]
+  dedupe -->|NotDuplicate| recordFlow
+  tgNav -->|SummarizeToday| todayFlow
+  tgNav -->|SummarizeWeekMonth| summarizeFlow
+  tgNav -->|FlushAll| flushFlow[FlushLifeLogData]
+
+  dailyView --> storage[(life_log)]
+  summaryView --> storage
+  todayFlow --> storage
+  flushFlow --> storage
+
+  askFlow --> orchestrator[agents_orchestrator]
+  recordFlow --> orchestrator
+  summarizeFlow --> orchestrator
+  hygieneFlow --> orchestrator
+
+  orchestrator --> recorder[RecorderAgent]
+  orchestrator --> summary[SummaryAgent]
+  orchestrator --> search[SearchFactAgent]
+  orchestrator --> guard[LifeGuardAgent]
+
+  recorder --> groq[GroqLLM]
+  summary --> groq
+  search --> groq
+
+  recorder --> storage
+  summary --> storage
+  search --> storage
+  guard --> storage
+
+  storage --> git[GitStoreGitPython]
+  git --> history[(GitHistoryTimeline)]

@@ -1,0 +1,35 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+*.pyc
+.coverage
+coverage.xml
+htmlcov/
+.DS_Store
+Thumbs.db
+Desktop.ini
+.env
+.env.*
+!.env.example
+
+# Streamlit and local config artifacts
+.streamlit/secrets.toml
+
+# IDE/local artifacts
+.cursor/
+.vscode/
+.idea/
+
+# Runtime/personal life data (keep templates and skeleton only in git)
+life_log/calendar/**/*.md
+life_log/journal/daily/**/*.md
+life_log/journal/weekly/**/*.md
+life_log/journal/monthly/**/*.md
+life_log/meta/health_reports/**/*.md
+life_log/meta/**/*.json
+
+!life_log/templates/*.md
+!life_log/**/.gitkeep

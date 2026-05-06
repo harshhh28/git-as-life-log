@@ -1,0 +1,14 @@
+streamlit
+crewai
+groq
+GitPython
+python-frontmatter
+pydantic
+python-dateutil
+PyYAML
+ruff
+litellm
+numpy
+sentence-transformers
+python-telegram-bot
+python-dotenv

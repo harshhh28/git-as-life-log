@@ -1,0 +1,14 @@
+flowchart TD
+  start[IndexBuildTrigger] --> scan[ScanAllMarkdownUnderLifeLog]
+  scan --> skipTemplates[SkipTemplateFiles]
+  skipTemplates --> chunk[SplitEachFileIntoLineChunks]
+  chunk --> embedCheck{SentenceTransformerAvailable}
+
+  embedCheck -->|Yes| embed[EncodeChunkEmbeddingsNormalized]
+  embedCheck -->|No| noEmbed[StoreTextOnlyChunks]
+
+  embed --> makeIndex[CreateSemanticIndexObject]
+  noEmbed --> makeIndex
+
+  makeIndex --> save[Writesemantic_chunks_index_json]
+  save --> done[IndexReadyForTopKRetrieval]

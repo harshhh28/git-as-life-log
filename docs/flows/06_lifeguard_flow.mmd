@@ -1,0 +1,21 @@
+flowchart TD
+  trigger[RunLifeGuardTrigger] --> today[GetTodayIST]
+  today --> loop[IterateLookbackDays]
+  loop --> exists{DailyFileExists}
+
+  exists -->|No| autoCreate[CreateMissingDailyEntry]
+  exists -->|Yes| read[ReadFrontmatterAndBody]
+
+  read --> valid{MetadataValid}
+  valid -->|No| fix[AutofixMissingFields]
+  valid -->|Yes| keep[NoChange]
+
+  autoCreate --> touched[CollectTouchedPaths]
+  fix --> touched
+  keep --> nextDay[NextDay]
+  touched --> nextDay
+  nextDay --> more{MoreDaysRemaining}
+  more -->|Yes| loop
+  more -->|No| report[WriteHealthReportMarkdown]
+  report --> commit[GitCommitHygieneChanges]
+  commit --> output[ReturnReportAndFixSummary]

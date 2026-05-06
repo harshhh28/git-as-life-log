@@ -1,0 +1,29 @@
+flowchart TD
+  input[RawUserText] --> parseTask[RecorderLLMParseTask]
+  input --> dupCheck{DuplicateHashInMinuteBucket}
+  dupCheck -->|Yes| skip[ReturnAlreadyRecordedNoWrite]
+  dupCheck -->|No| parseTask
+  parseTask --> parsed[ParsedMetadataJSON]
+  parsed --> validate[ValidateNormalizeMetadata]
+  validate --> hasDate{RawTextHasExplicitDate}
+
+  hasDate -->|Yes| resolveDate[ResolveDateFromRawTextIST]
+  hasDate -->|No| useToday[UseIstTodayDate]
+  resolveDate --> anchor[AnchorStartEndToResolvedDate]
+  useToday --> anchor
+
+  anchor --> normalize[NormalizeToIstIso]
+  normalize --> targetDay[ComputeTargetDayFromStartIST]
+  targetDay --> dailyPath[BuildDailyPathYYYYMMDD]
+  targetDay --> calPath[BuildCalendarPathYYYYMM]
+
+  dailyPath --> ensureDaily{DailyFileExists}
+  ensureDaily -->|No| createDaily[CreateDailyTemplateEntry]
+  ensureDaily -->|Yes| appendDaily[AppendEventToDaily]
+  createDaily --> appendDaily
+
+  calPath --> appendCal[AppendEventToCalendarFile]
+  appendDaily --> commit[GitCommitRecorderChanges]
+  appendCal --> commit
+  commit --> register[RegisterProcessedEventHash]
+  register --> output[ReturnPathsMetadataCommitHash]

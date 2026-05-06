@@ -1,0 +1,29 @@
+flowchart TD
+  client[ClientSurface] --> choose{StreamlitOrTelegram}
+  choose -->|Streamlit| st[streamlit_app_main]
+  choose -->|Telegram| tg[bot_telegram_bot]
+
+  st --> stRecord[RecordImport]
+  tg --> tgRecord[RecordNote]
+  stRecord --> dedupe{DuplicateCheckMinuteHash}
+  tgRecord --> dedupe
+  dedupe -->|Duplicate| noWrite[NoWriteAlreadyRecorded]
+  dedupe -->|NotDuplicate| rec[run_record_import]
+  rec --> write[WriteDailyAndCalendar]
+  write --> git[CommitViaGitStore]
+  git --> reg[RegisterProcessedEventHash]
+
+  st --> stAsk[AskYourLife]
+  tg --> tgAsk[AskYourLife]
+  stAsk --> search[run_search]
+  tgAsk --> search
+
+  st --> stToday[SummarizeToday]
+  tg --> tgToday[SummarizeToday]
+  stToday --> todayLogic[TodaySummaryFromDaily]
+  tgToday --> todayLogic
+
+  st --> stSummary[SummarizeWeekMonth]
+  tg --> tgSummary[SummarizeWeekMonth]
+  stSummary --> sum[run_summarize_yesterday_or_month]
+  tgSummary --> sum

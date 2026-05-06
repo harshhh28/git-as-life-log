@@ -1,0 +1,22 @@
+flowchart TD
+  question[UserQuestion] --> fastPathCheck{LastMeetPersonPattern}
+  fastPathCheck -->|Yes| deterministic[DeterministicMeetingLookup]
+  deterministic --> detResult[ReturnHighConfidenceAnswer]
+
+  fastPathCheck -->|No| ragPrep[LoadOrBuildSemanticIndex]
+  ragPrep --> embedReady{EmbeddingsAvailable}
+  embedReady -->|Yes| embedQuery[EncodeQueryVector]
+  embedReady -->|No| lexical[ComputeLexicalFallbackScores]
+
+  embedQuery --> scoreAll[ScoreAllChunkVectorsDotProduct]
+  lexical --> scoreAllLex[ScoreAllChunksByTokenOverlap]
+  scoreAll --> rank[RankChunksByScoreDesc]
+  scoreAllLex --> rank
+
+  rank --> topk[SelectTopKChunks]
+  topk --> context[BuildRetrievedEvidenceContext]
+  context --> addGit[AddGitHistoryContext]
+  addGit --> llmAnswer[LLMGeneratesStructuredAnswer]
+  llmAnswer --> parse[ParseAnswerJSONRobustly]
+  parse --> sources[AttachSourceFiles]
+  sources --> ragResult[ReturnSearchAnswer]
