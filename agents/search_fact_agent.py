@@ -144,6 +144,7 @@ def _deterministic_activity_when(
         candidates.append((score, str(md), text[:1200], date_hint))
     if not candidates:
         return None
+
     # Prefer highest score; then dated records; then daily/calendar files over rollups.
     def _priority(item: tuple[int, str, str, str | None]) -> tuple[int, int, int]:
         score, path, _, date_hint = item
@@ -222,9 +223,7 @@ def _answer_today_question(life_log_root: Path) -> SearchAnswer:
         activity_fragments.extend(meeting_titles[:2])
 
     if not activity_fragments:
-        answer = (
-            f"On {today.isoformat()}, I found your daily entry, but it does not include clear activity notes yet."
-        )
+        answer = f"On {today.isoformat()}, I found your daily entry, but it does not include clear activity notes yet."
     elif len(activity_fragments) == 1:
         activity = activity_fragments[0].strip().rstrip(".")
         answer = f"On {today.isoformat()}, you {activity}."

@@ -152,7 +152,11 @@ def run_recorder(repo_root: Path, life_log_root: Path, raw_text: str) -> Recorde
     metadata.setdefault("summary", raw_text.strip())
     if not metadata.get("summary"):
         metadata["summary"] = raw_text.strip()
-    if not metadata.get("project") or str(metadata.get("project")).lower() in {"none", "null", "n/a"}:
+    if not metadata.get("project") or str(metadata.get("project")).lower() in {
+        "none",
+        "null",
+        "n/a",
+    }:
         metadata["project"] = "general"
     if not metadata.get("mood") or str(metadata.get("mood")).lower() in {"none", "null", "n/a"}:
         metadata["mood"] = "neutral"
