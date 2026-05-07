@@ -1,32 +1,135 @@
-flowchart TD
-  question[UserQuestion] --> todayCheck{IsTodayQuestion}
-  todayCheck -->|Yes| readToday[ReadTodayDailyFileDirectly]
-  readToday --> todayAnswer[ReturnHighConfidenceAnswerNoLLM]
+flowchart TB
 
-  todayCheck -->|No| whenCheck{IsWhenDidIQuestion}
-  whenCheck -->|Yes| deterministicWhen[KeywordScoringAcrossAllMarkdown]
-  deterministicWhen --> whenHit{MatchFound}
-  whenHit -->|Yes| whenResult[ReturnHighConfidenceAnswerWithDate]
+  %% =========================
+  %% QUESTION ENTRY
+  %% =========================
+  subgraph Input
+    question[User Question]
+  end
+
+  %% =========================
+  %% TODAY QUESTION PATH
+  %% =========================
+  subgraph TodayQuery
+    todayCheck{Question About Today?}
+
+    readToday[Read Today's Daily Log]
+
+    todayAnswer[Return Direct High-Confidence Answer]
+  end
+
+  question --> todayCheck
+
+  todayCheck -->|Yes| readToday
+  readToday --> todayAnswer
+
+  %% =========================
+  %% WHEN-DID-I QUERY
+  %% =========================
+  subgraph TemporalLookup
+    whenCheck{“When Did I...” Query?}
+
+    deterministicWhen[Keyword Matching Across Logs]
+
+    whenHit{Relevant Match Found?}
+
+    whenResult[Return Matched Date & Context]
+  end
+
+  todayCheck -->|No| whenCheck
+
+  whenCheck -->|Yes| deterministicWhen
+  deterministicWhen --> whenHit
+
+  whenHit -->|Yes| whenResult
+
+  %% =========================
+  %% PERSON INTERACTION QUERY
+  %% =========================
+  subgraph PersonLookup
+    personCheck{Person Interaction Query?}
+
+    deterministic[Deterministic Person Lookup]
+
+    detResult[Return High-Confidence Result]
+  end
+
   whenHit -->|No| personCheck
+  whenCheck -->|No| personCheck
 
-  whenCheck -->|No| personCheck{AtPersonLastInteractionPattern}
-  personCheck -->|Yes| deterministic[DeterministicPersonNoteLookup]
-  deterministic --> detResult[ReturnHighConfidenceAnswer]
+  personCheck -->|Yes| deterministic
+  deterministic --> detResult
 
-  personCheck -->|No| ragPrep[LoadOrBuildSemanticIndex]
-  ragPrep --> embedReady{EmbeddingsAvailable}
-  embedReady -->|Yes| embedQuery[EncodeQueryVector]
-  embedReady -->|No| lexical[ComputeLexicalFallbackScores]
+  %% =========================
+  %% SEMANTIC SEARCH PREPARATION
+  %% =========================
+  subgraph RetrievalPreparation
+    ragPrep[Load or Build Semantic Index]
 
-  embedQuery --> scoreAll[ScoreAllChunkVectorsDotProduct]
-  lexical --> scoreAllLex[ScoreAllChunksByTokenOverlap]
-  scoreAll --> rank[RankChunksByScoreDesc]
+    embedReady{Embeddings Available?}
+  end
+
+  personCheck -->|No| ragPrep
+
+  ragPrep --> embedReady
+
+  %% =========================
+  %% VECTOR SEARCH
+  %% =========================
+  subgraph VectorRetrieval
+    embedQuery[Encode Query Vector]
+
+    scoreAll[Score Chunk Embeddings]
+
+    rank[Rank Results by Similarity]
+  end
+
+  embedReady -->|Yes| embedQuery
+  embedQuery --> scoreAll
+  scoreAll --> rank
+
+  %% =========================
+  %% LEXICAL FALLBACK
+  %% =========================
+  subgraph LexicalFallback
+    lexical[Compute Lexical Similarity Scores]
+
+    scoreAllLex[Rank by Token Overlap]
+  end
+
+  embedReady -->|No| lexical
+  lexical --> scoreAllLex
   scoreAllLex --> rank
 
-  rank --> topk[SelectTopKChunks]
-  topk --> context[BuildRetrievedEvidenceContext]
-  context --> addGit[AddGitHistoryContext]
-  addGit --> llmAnswer[LLMGeneratesStructuredAnswer]
-  llmAnswer --> parse[ParseAnswerJSONRobustly]
-  parse --> sources[AttachSourceFiles]
-  sources --> ragResult[ReturnSearchAnswer]
+  %% =========================
+  %% CONTEXT BUILDING
+  %% =========================
+  subgraph ContextAssembly
+    topk[Select Top-K Relevant Chunks]
+
+    context[Build Evidence Context]
+
+    addGit[Add Git History Context]
+  end
+
+  rank --> topk
+  topk --> context
+  context --> addGit
+
+  %% =========================
+  %% ANSWER GENERATION
+  %% =========================
+  subgraph AnswerGeneration
+    llmAnswer[Generate Structured Answer]
+
+    parse[Parse Structured JSON Response]
+
+    sources[Attach Source References]
+
+    ragResult[Return Final Search Answer]
+  end
+
+  addGit --> llmAnswer
+  llmAnswer --> parse
+  parse --> sources
+  sources --> ragResult

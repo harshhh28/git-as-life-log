@@ -1,40 +1,145 @@
-flowchart TD
-  tgMsg[IncomingTelegramMessage] --> dupCheck{DuplicateHashInMinuteBucket}
-  dupCheck -->|Yes| skip[ReturnAlreadyRecordedNoWrite]
-  dupCheck -->|No| callOrchestrator[CallOrchestratorRunRecordNote]
+flowchart TB
 
-  callOrchestrator --> input[RawNoteText]
-  input --> parseTask[RecorderLLMParseTask_llama3.1-8b]
-  parseTask --> parsed[ParsedNoteMetadataJSON]
-  parsed --> validate[ValidateNormalizeMetadata]
+  %% =========================
+  %% MESSAGE INGESTION
+  %% =========================
+  subgraph Ingestion
+    tgMsg[Incoming Telegram Message]
 
-  validate --> hasDate{RawTextHasAnyDateHint}
+    dupCheck{Duplicate Hash<br/>Within Time Window}
 
-  hasDate -->|No| useToday[UseIstTodayDate]
-  hasDate -->|Yes, relative keyword today/yesterday/tomorrow| useRelative[ResolveRelativeKeywordDate]
-  hasDate -->|Yes, explicit date| resolveExplicit[ExtractExplicitDateRegex]
-  resolveExplicit --> dateutilFallback{ExplicitExtractSucceeded}
-  dateutilFallback -->|No| dateutilParse[DateutilFuzzyParse]
-  dateutilFallback -->|Yes| anchor
+    skip[Already Recorded<br/>No Write]
+    callOrchestrator[Invoke Record Pipeline]
+  end
 
-  useToday --> anchor[AnchorStartEndToResolvedDate]
+  tgMsg --> dupCheck
+  dupCheck -->|Duplicate| skip
+  dupCheck -->|New Message| callOrchestrator
+
+  %% =========================
+  %% NOTE PROCESSING
+  %% =========================
+  subgraph Processing
+    input[Raw Note Text]
+
+    parseTask[LLM Parsing Task<br/>openai/gpt-oss-20b]
+
+    parsed[Structured Metadata JSON]
+
+    validate[Validate & Normalize Metadata]
+  end
+
+  callOrchestrator --> input
+  input --> parseTask
+  parseTask --> parsed
+  parsed --> validate
+
+  %% =========================
+  %% DATE RESOLUTION
+  %% =========================
+  subgraph DateResolution
+    hasDate{Contains Date Hint?}
+
+    useToday[Use Current IST Date]
+
+    useRelative[Resolve Relative Date<br/>today / yesterday / tomorrow]
+
+    resolveExplicit[Extract Explicit Date]
+
+    dateutilFallback{Explicit Extraction Success?}
+
+    dateutilParse[Fuzzy Date Parsing]
+
+    anchor[Anchor Start/End Time]
+  end
+
+  validate --> hasDate
+
+  hasDate -->|No| useToday
+  hasDate -->|Relative Date| useRelative
+  hasDate -->|Explicit Date| resolveExplicit
+
+  resolveExplicit --> dateutilFallback
+
+  dateutilFallback -->|Success| anchor
+  dateutilFallback -->|Fallback Needed| dateutilParse
+
+  useToday --> anchor
   useRelative --> anchor
   dateutilParse --> anchor
 
-  anchor --> normalize[NormalizeToIstIso]
-  normalize --> targetDay[ComputeTargetDayFromStartIST]
-  targetDay --> dailyPath[BuildDailyPathYYYYMMDD]
-  targetDay --> calPath[BuildCalendarPathYYYYMM]
+  %% =========================
+  %% NORMALIZATION
+  %% =========================
+  subgraph TimeNormalization
+    normalize[Normalize to IST ISO Format]
+    targetDay[Compute Target Day]
+  end
 
-  dailyPath --> ensureDaily{DailyFileExists}
-  ensureDaily -->|No| createDaily[CreateDailyTemplateEntry]
-  ensureDaily -->|Yes| appendDaily[AppendNoteToDaily]
+  anchor --> normalize
+  normalize --> targetDay
+
+  %% =========================
+  %% PATH GENERATION
+  %% =========================
+  subgraph PathGeneration
+    dailyPath[Generate Daily Path<br/>YYYY-MM-DD]
+
+    calPath[Generate Calendar Path<br/>YYYY-MM]
+  end
+
+  targetDay --> dailyPath
+  targetDay --> calPath
+
+  %% =========================
+  %% DAILY STORAGE
+  %% =========================
+  subgraph DailyStorage
+    ensureDaily{Daily File Exists?}
+
+    createDaily[Create Daily Template]
+
+    appendDaily[Append Note to Daily Log]
+  end
+
+  dailyPath --> ensureDaily
+
+  ensureDaily -->|No| createDaily
+  ensureDaily -->|Yes| appendDaily
+
   createDaily --> appendDaily
 
-  calPath --> appendCal[AppendNoteToCalendarFile]
-  appendDaily --> commit[GitCommitRecorderChanges]
-  appendCal --> commit
-  commit --> returnResult[ReturnPathsMetadataCommitHash]
+  %% =========================
+  %% CALENDAR STORAGE
+  %% =========================
+  subgraph CalendarStorage
+    appendCal[Append Note to Calendar File]
+  end
 
-  returnResult --> register[RegisterProcessedMessageHashInBot]
-  register --> output[SendFormattedResponseToUser]
+  calPath --> appendCal
+
+  %% =========================
+  %% VERSION CONTROL
+  %% =========================
+  subgraph Versioning
+    commit[Commit Changes to Git]
+
+    returnResult[Return Paths, Metadata & Commit Hash]
+  end
+
+  appendDaily --> commit
+  appendCal --> commit
+
+  commit --> returnResult
+
+  %% =========================
+  %% RESPONSE FLOW
+  %% =========================
+  subgraph Response
+    register[Register Processed Message Hash]
+
+    output[Send Formatted Response]
+  end
+
+  returnResult --> register
+  register --> output

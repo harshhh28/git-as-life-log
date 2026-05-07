@@ -1,36 +1,106 @@
-flowchart TD
-  tgUser[UserInTelegram] --> tg[bot_telegram_bot]
-  tg --> tgNav{TelegramMenuAction}
-  tgNav -->|Ask your life| askFlow
-  tgNav -->|Record note| dedupe{DuplicateMessageWindow}
-  dedupe -->|Duplicate| dedupeReturn[AlreadyRecordedNoOp]
-  dedupe -->|NotDuplicate| recordFlow
-  tgNav -->|Summarize today| todayFlow
-  tgNav -->|Summarize week| summarizeWeekFlow
-  tgNav -->|Summarize month| summarizeMonthFlow
-  tgNav -->|Flush all data| flushFlow[FlushLifeLogData]
+flowchart TB
 
-  flushFlow --> storage
+  %% =========================
+  %% USER LAYER
+  %% =========================
+  subgraph UserLayer
+    tgUser[Telegram User]
+  end
 
-  askFlow --> orchestrator[agents_orchestrator]
+  %% =========================
+  %% INTERFACE LAYER
+  %% =========================
+  subgraph Interface
+    tg[Telegram Bot]
+    tgNav{User Action}
+  end
+
+  tgUser --> tg
+  tg --> tgNav
+
+  %% =========================
+  %% APPLICATION FLOWS
+  %% =========================
+  subgraph Flows
+    askFlow[Ask Your Life]
+
+    dedupe{Duplicate Check}
+    dedupeReturn[Already Recorded]
+    recordFlow[Record Note]
+
+    todayFlow[Generate Daily Summary]
+    summarizeWeekFlow[Generate Weekly Summary]
+    summarizeMonthFlow[Generate Monthly Summary]
+
+    flushFlow[Flush All Data]
+  end
+
+  tgNav -->|Ask Your Life| askFlow
+
+  tgNav -->|Record Note| dedupe
+  dedupe -->|Duplicate| dedupeReturn
+  dedupe -->|New Entry| recordFlow
+
+  tgNav -->|Summarize Today| todayFlow
+  tgNav -->|Summarize Week| summarizeWeekFlow
+  tgNav -->|Summarize Month| summarizeMonthFlow
+
+  tgNav -->|Flush All Data| flushFlow
+
+  %% =========================
+  %% ORCHESTRATION LAYER
+  %% =========================
+  subgraph Core
+    orchestrator[Agent Orchestrator]
+  end
+
+  askFlow --> orchestrator
   recordFlow --> orchestrator
   todayFlow --> orchestrator
   summarizeWeekFlow --> orchestrator
   summarizeMonthFlow --> orchestrator
 
-  orchestrator --> recorder[RecorderAgent]
-  orchestrator --> summary[SummaryAgent]
-  orchestrator --> search[SearchFactAgent]
-  orchestrator --> lifeguard[LifeGuardAgent]
+  %% =========================
+  %% AGENT LAYER
+  %% =========================
+  subgraph Agents
+    recorder[Recorder Agent]
+    summary[Summary Agent]
+    search[Search Fact Agent]
+    lifeguard[Life Guard Agent]
+  end
 
-  recorder --> groq[GroqLLM]
+  orchestrator --> recorder
+  orchestrator --> summary
+  orchestrator --> search
+  orchestrator --> lifeguard
+
+  %% =========================
+  %% LLM LAYER
+  %% =========================
+  subgraph Intelligence
+    groq[Groq LLM]
+  end
+
+  recorder --> groq
   summary --> groq
   search --> groq
 
-  recorder --> storage[(life_log)]
+  %% =========================
+  %% PERSISTENCE LAYER
+  %% =========================
+  subgraph Persistence
+    storage[(Life Log Storage)]
+    git[Git Version Store]
+    history[(Timeline History)]
+  end
+
+  flushFlow --> storage
+
+  recorder --> storage
   summary --> storage
   search --> storage
   lifeguard --> storage
 
-  storage --> git[GitStoreGitPython]
-  git --> history[(GitHistoryTimeline)]
+  storage --> git
+  git --> history

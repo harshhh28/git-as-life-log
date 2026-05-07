@@ -1,14 +1,61 @@
-flowchart TD
-  start[IndexBuildTrigger] --> scan[ScanAllMarkdownUnderLifeLog]
-  scan --> skipTemplates[SkipTemplateFiles]
-  skipTemplates --> chunk[SplitEachFileIntoLineChunks]
-  chunk --> embedCheck{SentenceTransformerAvailable}
+flowchart TB
 
-  embedCheck -->|Yes| embed[EncodeChunkEmbeddingsNormalized]
-  embedCheck -->|No| noEmbed[StoreTextOnlyChunks]
+  %% =========================
+  %% INDEX BUILD TRIGGER
+  %% =========================
+  subgraph Trigger
+    start[Index Build Trigger]
+  end
 
-  embed --> makeIndex[CreateSemanticIndexObject]
+  %% =========================
+  %% FILE DISCOVERY
+  %% =========================
+  subgraph FileProcessing
+    scan[Scan Markdown Files<br/>Under Life Log]
+
+    skipTemplates[Exclude Template Files]
+
+    chunk[Split Files Into Chunks]
+  end
+
+  start --> scan
+  scan --> skipTemplates
+  skipTemplates --> chunk
+
+  %% =========================
+  %% EMBEDDING PIPELINE
+  %% =========================
+  subgraph EmbeddingPipeline
+    embedCheck{Sentence Transformer Available?}
+
+    embed[Generate Normalized Embeddings]
+
+    noEmbed[Store Text-Only Chunks]
+  end
+
+  chunk --> embedCheck
+
+  embedCheck -->|Available| embed
+  embedCheck -->|Unavailable| noEmbed
+
+  %% =========================
+  %% INDEX GENERATION
+  %% =========================
+  subgraph IndexConstruction
+    makeIndex[Build Semantic Index Object]
+  end
+
+  embed --> makeIndex
   noEmbed --> makeIndex
 
-  makeIndex --> save[WriteSemanticChunksIndexJson]
-  save --> done[IndexReadyForTopKRetrieval]
+  %% =========================
+  %% PERSISTENCE
+  %% =========================
+  subgraph Persistence
+    save[Write Semantic Index JSON]
+
+    done[Index Ready for Retrieval]
+  end
+
+  makeIndex --> save
+  save --> done

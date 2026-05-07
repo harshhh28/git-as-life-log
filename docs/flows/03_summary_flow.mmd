@@ -1,25 +1,108 @@
-flowchart TD
-  trigger[TriggerSummaryFromUIOrNightly] --> choose{SummaryPeriod}
-  choose -->|Today| todayRead[ReadTodayDailyMarkdown]
-  choose -->|Weekly| weekRange[ComputeWeekRangeIST]
-  choose -->|Monthly| monthRange[ComputeMonthRangeIST]
+flowchart TB
 
-  todayRead --> todayExists{TodayFileExists}
-  todayExists -->|No| noEntry[ReturnNoEntriesToday]
-  todayExists -->|Yes| todaySummarize[GroqSummaryGeneration_2to3sentences]
-  todaySummarize --> todayResult[ReturnPlainTextSummaryNoCommit]
+  %% =========================
+  %% SUMMARY TRIGGER
+  %% =========================
+  subgraph Trigger
+    trigger[Summary Trigger<br/>UI or Scheduled Job]
 
-  weekRange --> collect[CollectDailyMarkdownInRange]
+    choose{Summary Period}
+  end
+
+  trigger --> choose
+
+  %% =========================
+  %% TODAY FLOW
+  %% =========================
+  subgraph TodaySummary
+    todayRead[Read Today's Daily Log]
+
+    todayExists{Daily File Exists?}
+
+    noEntry[Return No Entries Found]
+
+    todaySummarize[Generate Short Summary<br/>2–3 Sentences]
+
+    todayResult[Return Plain Text Summary]
+  end
+
+  choose -->|Today| todayRead
+
+  todayRead --> todayExists
+
+  todayExists -->|No Data| noEntry
+  todayExists -->|Exists| todaySummarize
+
+  todaySummarize --> todayResult
+
+  %% =========================
+  %% RANGE COMPUTATION
+  %% =========================
+  subgraph RangeSelection
+    weekRange[Compute Weekly Range<br/>IST]
+
+    monthRange[Compute Monthly Range<br/>IST]
+  end
+
+  choose -->|Weekly| weekRange
+  choose -->|Monthly| monthRange
+
+  %% =========================
+  %% DATA COLLECTION
+  %% =========================
+  subgraph DataCollection
+    collect[Collect Daily Markdown Files]
+
+    hasData{Any Entries Found?}
+
+    fail[Return No Data Error]
+  end
+
+  weekRange --> collect
   monthRange --> collect
-  collect --> hasData{AnyDailyEntriesFound}
-  hasData -->|No| fail[ReturnNoDataError]
-  hasData -->|Yes| summarize[GroqSummaryGeneration]
 
-  summarize --> outFile{OutputFilePath}
-  outFile -->|Weekly| weeklyFile[life_log_journal_weekly]
-  outFile -->|Monthly| monthlyFile[life_log_journal_monthly]
+  collect --> hasData
 
-  weeklyFile --> write[WriteSummaryMarkdownWithFrontmatter]
+  hasData -->|No| fail
+
+  %% =========================
+  %% SUMMARY GENERATION
+  %% =========================
+  subgraph Summarization
+    summarize[Generate AI Summary<br/>Groq LLM]
+  end
+
+  hasData -->|Yes| summarize
+
+  %% =========================
+  %% OUTPUT RESOLUTION
+  %% =========================
+  subgraph OutputRouting
+    outFile{Output Type}
+
+    weeklyFile[Weekly Journal Path]
+
+    monthlyFile[Monthly Journal Path]
+  end
+
+  summarize --> outFile
+
+  outFile -->|Weekly| weeklyFile
+  outFile -->|Monthly| monthlyFile
+
+  %% =========================
+  %% STORAGE & VERSIONING
+  %% =========================
+  subgraph Persistence
+    write[Write Markdown Summary<br/>with Frontmatter]
+
+    commit[Commit Summary to Git]
+
+    result[Return Summary Path<br/>and Commit Hash]
+  end
+
+  weeklyFile --> write
   monthlyFile --> write
-  write --> commit[GitCommitSummary]
-  commit --> result[ReturnSummaryPathAndCommit]
+
+  write --> commit
+  commit --> result

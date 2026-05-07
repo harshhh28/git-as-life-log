@@ -1,21 +1,90 @@
-flowchart TD
-  trigger[RunLifeGuardTrigger] --> today[GetTodayIST]
-  today --> loop[IterateLookbackDays]
-  loop --> exists{DailyFileExists}
+flowchart TB
 
-  exists -->|No| autoCreate[CreateMissingDailyEntry]
-  exists -->|Yes| read[ReadFrontmatterAndBody]
+  %% =========================
+  %% HYGIENE TRIGGER
+  %% =========================
+  subgraph Trigger
+    trigger[Run Life Guard Trigger]
 
-  read --> valid{MetadataValid}
-  valid -->|No| fix[AutofixMissingFields]
-  valid -->|Yes| keep[NoChange]
+    today[Resolve Current IST Date]
+  end
 
-  autoCreate --> touched[CollectTouchedPaths]
+  trigger --> today
+
+  %% =========================
+  %% LOOKBACK ITERATION
+  %% =========================
+  subgraph Iteration
+    loop[Iterate Through Lookback Days]
+
+    exists{Daily File Exists?}
+  end
+
+  today --> loop
+  loop --> exists
+
+  %% =========================
+  %% MISSING FILE HANDLING
+  %% =========================
+  subgraph MissingFileRecovery
+    autoCreate[Create Missing Daily Entry]
+  end
+
+  exists -->|Missing| autoCreate
+
+  %% =========================
+  %% FILE VALIDATION
+  %% =========================
+  subgraph Validation
+    read[Read Frontmatter & Content]
+
+    valid{Metadata Valid?}
+
+    fix[Auto-Fix Missing Fields]
+
+    keep[No Changes Required]
+  end
+
+  exists -->|Exists| read
+
+  read --> valid
+
+  valid -->|Invalid| fix
+  valid -->|Valid| keep
+
+  %% =========================
+  %% CHANGE TRACKING
+  %% =========================
+  subgraph ChangeTracking
+    touched[Collect Modified Paths]
+
+    nextDay[Move to Next Day]
+
+    more{More Days Remaining?}
+  end
+
+  autoCreate --> touched
   fix --> touched
-  keep --> nextDay[NextDay]
+
   touched --> nextDay
-  nextDay --> more{MoreDaysRemaining}
+  keep --> nextDay
+
+  nextDay --> more
+
   more -->|Yes| loop
-  more -->|No| report[WriteHealthReportMarkdown]
-  report --> commit[GitCommitHygieneChanges]
-  commit --> output[ReturnReportAndFixSummary]
+
+  %% =========================
+  %% REPORTING & VERSIONING
+  %% =========================
+  subgraph Reporting
+    report[Generate Health Report]
+
+    commit[Commit Hygiene Changes]
+
+    output[Return Report & Fix Summary]
+  end
+
+  more -->|No| report
+
+  report --> commit
+  commit --> output
