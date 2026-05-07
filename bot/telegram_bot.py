@@ -72,6 +72,7 @@ def _deps():
         "run_search": run_search,
         "run_summarize_month": run_summarize_month,
         "run_summarize_yesterday": run_summarize_yesterday,
+        "run_summarize_today": run_summarize_today,
         "IST": IST,
         "ist_now": ist_now,
         "ist_today": ist_today,
@@ -301,82 +302,7 @@ async def _run_with_thinking(message, label: str, work):
         return None, "error"
 
 
-def _build_today_report() -> str:
-    deps = _deps()
-    today = deps["ist_today"]()
-    daily_path = deps["LIFE_LOG_ROOT"] / "journal" / "daily" / f"{today.isoformat()}.md"
-    if not daily_path.exists():
-        return (
-            f"<b>Status:</b> ok\n"
-            f"<b>Answer:</b>\n"
-            f"<pre>No entries found for today yet.</pre>\n"
-            f"<b>Daily:</b> <code>{html.escape(str(daily_path), quote=False)}</code>"
-        )
-    text = daily_path.read_text(encoding="utf-8")
-    categories = []
-    if "## Work" in text:
-        categories.append("work")
-    if "## Personal" in text:
-        categories.append("personal")
-    if "## Highlights" in text:
-        categories.append("highlights")
-    lines = text.splitlines()
-    note_titles: list[str] = []
-    details: list[str] = []
-    people: list[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("## Note:"):
-            title = stripped.replace("## Note:", "").strip()
-            if title and title.lower() not in {"none", "unknown", "n/a", "general"}:
-                note_titles.append(title)
-        if stripped.startswith("- Details:") or stripped.startswith("- Notes:"):
-            note = stripped.replace("- Details:", "").replace("- Notes:", "").strip()
-            if note and note.lower() not in {"none", "unknown", "n/a"}:
-                details.append(note)
-        if stripped.startswith("- People:"):
-            ppl = stripped.replace("- People:", "").strip()
-            if ppl and ppl.lower() not in {"none", "n/a"}:
-                people.append(ppl)
 
-    activity_parts: list[str] = []
-    if details:
-        cleaned_details = [d.strip().rstrip(".") for d in details[:3]]
-        activity_parts.extend(cleaned_details)
-    if note_titles:
-        cleaned_titles = [t.strip().rstrip(".") for t in note_titles[:2]]
-        activity_parts.extend(cleaned_titles)
-
-    def _smart_title(text_value: str) -> str:
-        acronyms = {"srh", "pbks", "ipl", "b2b", "ui", "ux", "api"}
-        words = text_value.split()
-        out = []
-        for w in words:
-            key = re.sub(r"[^a-zA-Z0-9]", "", w).lower()
-            if key in acronyms:
-                out.append(w.upper())
-            else:
-                out.append(w)
-        return " ".join(out)
-
-    if not activity_parts:
-        activity_answer = f"On {today.isoformat()}, your entry exists but specific activity details were not captured yet."
-    elif len(activity_parts) == 1:
-        main = _smart_title(activity_parts[0])
-        activity_answer = f"On {today.isoformat()}, you {main}."
-    else:
-        first = _smart_title(activity_parts[0])
-        rest = "; ".join(_smart_title(x) for x in activity_parts[1:3])
-        activity_answer = f"On {today.isoformat()}, you {first}."
-        if rest:
-            activity_answer += f" Also: {rest}."
-
-    return (
-        f"<b>Status:</b> ok\n"
-        f"<b>Answer:</b>\n"
-        f"<pre>{html.escape(activity_answer, quote=False)}</pre>\n"
-        f"<b>Daily:</b> <code>{html.escape(str(daily_path), quote=False)}</code>"
-    )
 
 
 def _flush_life_log_data() -> dict[str, Any]:
@@ -444,7 +370,20 @@ async def today_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await _reject_unauthorized(update)
         return ConversationHandler.END
     if update.effective_message:
-        await _send_response(update.effective_message, _build_today_report())
+        result, err = await _run_with_thinking(
+            update.effective_message,
+            "Summarize today",
+            lambda: _deps()["run_summarize_today"](),
+        )
+        if not err:
+            enriched_result = dict(result)
+            enriched_result["answer"] = result.get("answer", "")
+            text = _format_result(
+                "ok", "Today's summary generated.", result=enriched_result
+            )
+        else:
+            text = _format_result("error", "Unable to summarize today right now.")
+        await _send_response(update.effective_message, text)
         await _send_menu(update.effective_message)
     return ConversationHandler.END
 
@@ -476,15 +415,17 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         result, err = await _run_with_thinking(
             query.message,
             "Summarize today",
-            _build_today_report,
+            lambda: _deps()["run_summarize_today"](),
         )
-        if not err and isinstance(result, str):
-            await _send_response(query.message, result)
-        else:
-            await _send_response(
-                query.message,
-                _format_result("error", "Unable to summarize today right now."),
+        if not err:
+            enriched_result = dict(result)
+            enriched_result["answer"] = result.get("answer", "")
+            text = _format_result(
+                "ok", "Today's summary generated.", result=enriched_result
             )
+        else:
+            text = _format_result("error", "Unable to summarize today right now.")
+        await _send_response(query.message, text)
         await _send_menu(query.message)
         return ConversationHandler.END
     if action == "menu_flush_all":

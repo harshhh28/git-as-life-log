@@ -6,7 +6,7 @@ from pathlib import Path
 from agents.life_guard_agent import run_life_guard
 from agents.recorder_agent import run_recorder
 from agents.search_fact_agent import answer_life_query
-from agents.summary_agent import summarize_month, summarize_week
+from agents.summary_agent import summarize_month, summarize_week, summarize_today
 from core.time_utils import ist_today
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,3 +47,11 @@ def run_life_hygiene() -> dict:
 def run_search(question: str) -> dict:
     answer = answer_life_query(REPO_ROOT, LIFE_LOG_ROOT, question)
     return {"answer": answer.answer, "sources": answer.sources, "confidence": answer.confidence}
+
+
+def run_summarize_today() -> dict:
+    answer = summarize_today(LIFE_LOG_ROOT)
+    today = ist_today()
+    daily_path = LIFE_LOG_ROOT / "journal" / "daily" / f"{today.isoformat()}.md"
+    return {"answer": answer, "daily_path": str(daily_path) if daily_path.exists() else None}
+
