@@ -1,16 +1,25 @@
 flowchart TD
-  input[RawNoteText] --> parseTask[RecorderLLMParseTask]
-  input --> dupCheck{DuplicateHashInMinuteBucket}
+  tgMsg[IncomingTelegramMessage] --> dupCheck{DuplicateHashInMinuteBucket}
   dupCheck -->|Yes| skip[ReturnAlreadyRecordedNoWrite]
-  dupCheck -->|No| parseTask
+  dupCheck -->|No| callOrchestrator[CallOrchestratorRunRecordNote]
+
+  callOrchestrator --> input[RawNoteText]
+  input --> parseTask[RecorderLLMParseTask_llama3.1-8b]
   parseTask --> parsed[ParsedNoteMetadataJSON]
   parsed --> validate[ValidateNormalizeMetadata]
-  validate --> hasDate{RawTextHasExplicitDate}
 
-  hasDate -->|Yes| resolveDate[ResolveDateFromRawNoteIST]
+  validate --> hasDate{RawTextHasAnyDateHint}
+
   hasDate -->|No| useToday[UseIstTodayDate]
-  resolveDate --> anchor[AnchorStartEndToResolvedDate]
-  useToday --> anchor
+  hasDate -->|Yes, relative keyword today/yesterday/tomorrow| useRelative[ResolveRelativeKeywordDate]
+  hasDate -->|Yes, explicit date| resolveExplicit[ExtractExplicitDateRegex]
+  resolveExplicit --> dateutilFallback{ExplicitExtractSucceeded}
+  dateutilFallback -->|No| dateutilParse[DateutilFuzzyParse]
+  dateutilFallback -->|Yes| anchor
+
+  useToday --> anchor[AnchorStartEndToResolvedDate]
+  useRelative --> anchor
+  dateutilParse --> anchor
 
   anchor --> normalize[NormalizeToIstIso]
   normalize --> targetDay[ComputeTargetDayFromStartIST]
@@ -25,5 +34,7 @@ flowchart TD
   calPath --> appendCal[AppendNoteToCalendarFile]
   appendDaily --> commit[GitCommitRecorderChanges]
   appendCal --> commit
-  commit --> register[RegisterProcessedMessageHash]
-  register --> output[ReturnPathsMetadataCommitHash]
+  commit --> returnResult[ReturnPathsMetadataCommitHash]
+
+  returnResult --> register[RegisterProcessedMessageHashInBot]
+  register --> output[SendFormattedResponseToUser]

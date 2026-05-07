@@ -1,9 +1,19 @@
 flowchart TD
-  question[UserQuestion] --> fastPathCheck{LastPersonMentionPattern}
-  fastPathCheck -->|Yes| deterministic[DeterministicPersonNoteLookup]
+  question[UserQuestion] --> todayCheck{IsTodayQuestion}
+  todayCheck -->|Yes| readToday[ReadTodayDailyFileDirectly]
+  readToday --> todayAnswer[ReturnHighConfidenceAnswerNoLLM]
+
+  todayCheck -->|No| whenCheck{IsWhenDidIQuestion}
+  whenCheck -->|Yes| deterministicWhen[KeywordScoringAcrossAllMarkdown]
+  deterministicWhen --> whenHit{MatchFound}
+  whenHit -->|Yes| whenResult[ReturnHighConfidenceAnswerWithDate]
+  whenHit -->|No| personCheck
+
+  whenCheck -->|No| personCheck{AtPersonLastInteractionPattern}
+  personCheck -->|Yes| deterministic[DeterministicPersonNoteLookup]
   deterministic --> detResult[ReturnHighConfidenceAnswer]
 
-  fastPathCheck -->|No| ragPrep[LoadOrBuildSemanticIndex]
+  personCheck -->|No| ragPrep[LoadOrBuildSemanticIndex]
   ragPrep --> embedReady{EmbeddingsAvailable}
   embedReady -->|Yes| embedQuery[EncodeQueryVector]
   embedReady -->|No| lexical[ComputeLexicalFallbackScores]

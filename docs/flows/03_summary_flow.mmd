@@ -1,7 +1,13 @@
 flowchart TD
   trigger[TriggerSummaryFromUIOrNightly] --> choose{SummaryPeriod}
+  choose -->|Today| todayRead[ReadTodayDailyMarkdown]
   choose -->|Weekly| weekRange[ComputeWeekRangeIST]
   choose -->|Monthly| monthRange[ComputeMonthRangeIST]
+
+  todayRead --> todayExists{TodayFileExists}
+  todayExists -->|No| noEntry[ReturnNoEntriesToday]
+  todayExists -->|Yes| todaySummarize[GroqSummaryGeneration_2to3sentences]
+  todaySummarize --> todayResult[ReturnPlainTextSummaryNoCommit]
 
   weekRange --> collect[CollectDailyMarkdownInRange]
   monthRange --> collect
