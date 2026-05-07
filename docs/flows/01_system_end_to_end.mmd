@@ -1,7 +1,6 @@
 flowchart TD
   tgUser[UserInTelegram] --> tg[bot_telegram_bot]
   tg --> tgNav{TelegramMenuAction}
-  tgUser -->|/today| todayCmd[RunSummarizeToday]
   tgNav -->|Ask your life| askFlow
   tgNav -->|Record note| dedupe{DuplicateMessageWindow}
   dedupe -->|Duplicate| dedupeReturn[AlreadyRecordedNoOp]
@@ -11,7 +10,6 @@ flowchart TD
   tgNav -->|Summarize month| summarizeMonthFlow
   tgNav -->|Flush all data| flushFlow[FlushLifeLogData]
 
-  todayCmd --> orchestrator
   flushFlow --> storage
 
   askFlow --> orchestrator[agents_orchestrator]

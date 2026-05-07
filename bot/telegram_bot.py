@@ -339,31 +339,9 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             "/start -> menu\n"
             "Record note -> stores your note and commits\n"
             "Ask your life -> search across life_log\n"
-            "/today -> today's entry status",
+            "Summarize today -> today's entry summary",
             reply_markup=MENU,
         )
-    return ConversationHandler.END
-
-
-async def today_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    config: BotConfig = context.application.bot_data["config"]
-    if not _is_authorized(update, config.allowed_chat_id):
-        await _reject_unauthorized(update)
-        return ConversationHandler.END
-    if update.effective_message:
-        result, err = await _run_with_thinking(
-            update.effective_message,
-            "Summarize today",
-            lambda: _deps()["run_summarize_today"](),
-        )
-        if not err:
-            enriched_result = dict(result)
-            enriched_result["answer"] = result.get("answer", "")
-            text = _format_result("ok", "Today's summary generated.", result=enriched_result)
-        else:
-            text = _format_result("error", "Unable to summarize today right now.")
-        await _send_response(update.effective_message, text)
-        await _send_menu(update.effective_message)
     return ConversationHandler.END
 
 
@@ -583,7 +561,6 @@ def build_application() -> Application:
 
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("help", help_handler))
-    app.add_handler(CommandHandler("today", today_handler))
     app.add_handler(conv)
     app.add_error_handler(error_handler)
     return app
