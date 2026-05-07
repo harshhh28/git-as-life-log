@@ -61,6 +61,7 @@ def _deps():
         run_search,
         run_summarize_month,
         run_summarize_yesterday,
+        run_summarize_today,
     )
     from core.time_utils import IST, ist_now, ist_today
 
