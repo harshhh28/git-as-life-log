@@ -71,7 +71,15 @@ def normalize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
 def validate_metadata(metadata: dict[str, Any], entry_type: str) -> ValidationResult:
     normalized = normalize_metadata(metadata)
     required = REQUIRED_KEYS_BY_TYPE.get(entry_type, ("type",))
-    missing = [k for k in required if k not in normalized or normalized[k] in (None, "", [])]
+    missing = []
+    for k in required:
+        val = normalized.get(k)
+        # An empty list is valid for list-type fields like "people" (solo activities are common).
+        # Only flag truly absent or None/empty-string values as missing.
+        if val is None or val == "":
+            missing.append(k)
+        elif k not in normalized:
+            missing.append(k)
     return ValidationResult(valid=not missing, missing_keys=missing, normalized=normalized)
 
 

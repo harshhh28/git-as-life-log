@@ -117,6 +117,19 @@ def _extract_explicit_date(raw_text: str) -> date | None:
 def _resolve_note_date(raw_text: str) -> date:
     if not _raw_text_has_date(raw_text):
         return ist_today()
+
+    # Handle relative day keywords first — before dateutil, which can misparse
+    # numbers in phrases like "10 min" as date components.
+    lowered = raw_text.lower()
+    if re.search(r"\btoday\b", lowered):
+        return ist_today()
+    if re.search(r"\byesterday\b", lowered):
+        from datetime import timedelta
+        return ist_today() - timedelta(days=1)
+    if re.search(r"\btomorrow\b", lowered):
+        from datetime import timedelta
+        return ist_today() + timedelta(days=1)
+
     explicit_date = _extract_explicit_date(raw_text)
     if explicit_date is not None:
         return explicit_date
