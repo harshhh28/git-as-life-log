@@ -1,4 +1,4 @@
-# Git-as-Life-Log (CrewAI + Groq + Streamlit)
+# Git-as-Life-Log (CrewAI + Groq + Telegram)
 
 A personal history tracker where Git-tracked Markdown files are the only data store.  
 Agents read and write `life_log/` and commit meaningful changes to the repository.
@@ -22,7 +22,6 @@ Recommended setup:
 - `life_log/` - life-log database (daily, weekly, monthly, calendar, metadata index/reports)
 - `agents/` - CrewAI agents: Recorder, Summary, Search/Fact, Life-Guard
 - `core/` - markdown/front-matter helpers and Git wrapper utilities
-- `streamlit_app/main.py` - Streamlit UI
 - `scripts/run_nightly.py` - nightly summary + hygiene entrypoint
 - `config/defaults.yaml` - defaults for model and behavior
 
@@ -39,8 +38,6 @@ Recommended setup:
 
 ## Run locally
 
-- Start app:
-  - `streamlit run streamlit_app/main.py`
 - Run nightly tasks manually:
   - `python scripts/run_nightly.py`
 - Run Telegram bot (polling):
@@ -56,17 +53,6 @@ Recommended setup:
   - `python -m ruff format --check .`
 
 CI runs Ruff automatically on pushes to `main` and on pull requests via `.github/workflows/lint.yml`.
-
-## Streamlit Community Cloud deployment
-
-1. Push this repo to GitHub.
-2. In Streamlit Community Cloud, create a new app from this repo.
-3. Set **Main file path** to:
-   - `streamlit_app/main.py`
-4. In app **Settings -> Secrets**, add:
-   - `GROQ_API_KEY = "your_key"`
-   - optional git push credentials if your deployment pushes commits.
-5. Deploy. Streamlit will install `requirements.txt` automatically.
 
 ## Telegram bot setup (single-user mode)
 
@@ -99,19 +85,17 @@ Run:
 Notes:
 
 - Polling mode only in this release.
-- Streamlit and Telegram follow the same core action logic (record dedupe, ask, summarize).
+- Telegram follows the same core action logic (record dedupe, ask, summarize).
 - Multi-user architecture is intentionally deferred.
 
 ## Security and privacy checklist before publishing
 
 - Confirm no secrets are committed (`GROQ_API_KEY`, PAT, etc.).
 - Confirm no personal entries are present in public branches.
-- Keep `.streamlit/secrets.toml` local only.
 - Review `SECURITY.md` for reporting and data safety policy.
 
 ### Notes for free tier scheduling
 
-Streamlit Cloud is request-driven, so use UI buttons for manual triggers.  
 For nightly automation, use GitHub Actions cron to run `python scripts/run_nightly.py` and push commits.
 
 ## Agent operations
@@ -140,20 +124,20 @@ For nightly automation, use GitHub Actions cron to run `python scripts/run_night
 
 ## End-to-end scenario
 
-1. Open Streamlit app.
-2. In **Run Agents**, paste a raw event and click **Record import**.
-3. Open **Daily Journal** and confirm meeting section was added.
-4. Click **Record import** again with the same text and confirm duplicate is ignored.
-5. Click **Summarize today** and verify answer text is generated.
-6. Click **Summarize yesterday (weekly rollup)** and open **Summaries**.
-7. In **Ask Your Life**, ask: `When did I last meet @alice?`
-8. Click **Check life hygiene** and verify generated report path.
+1. In Telegram, run `/start` and open the bot menu.
+2. Use **Record note** with a raw event and confirm daily/calendar files were updated.
+3. Send the same record text again in the same minute and confirm duplicate is ignored.
+4. Use **Summarize today** and verify response text is generated.
+5. Use **Summarize week** and confirm summary files are written.
+6. Use **Ask your life** and ask: `When did I last meet @alice?`
+7. Use **/today** to verify entries, gaps, and quick stats.
+8. Use **Flush all data** only in test data scenarios.
 
 ## Telegram manual validation checklist
 
 - Authorized user can run `/start` and receive menu.
 - Unauthorized user is blocked with a simple message.
-- Record import creates expected files and commit hash.
+- Record note creates expected files and commit hash.
 - Sending the same record message again in the same minute returns `already recorded`.
 - Ask your life returns concise answer and limited sources.
 - `/today` returns today's entries, missing sections, and quick stats.
@@ -163,13 +147,12 @@ For nightly automation, use GitHub Actions cron to run `python scripts/run_night
 
 Mermaid flow diagrams live under `docs/flows/`:
 
-- `01_system_end_to_end.mmd` - Streamlit + Telegram end-to-end paths.
+- `01_system_end_to_end.mmd` - Telegram end-to-end path.
 - `02_recorder_flow.mmd` - recorder + duplicate guard path.
 - `03_summary_flow.mmd` - weekly/monthly summary generation.
 - `04_search_rag_topk_flow.mmd` - search and retrieval flow.
 - `05_indexing_pipeline_flow.mmd` - semantic index generation.
 - `06_lifeguard_flow.mmd` - life hygiene flow.
-- `07_client_parity_flow.mmd` - client parity map for Streamlit and Telegram.
 
 ## Community files
 

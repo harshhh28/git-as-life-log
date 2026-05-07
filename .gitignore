@@ -15,9 +15,6 @@ Desktop.ini
 .env.*
 !.env.example
 
-# Streamlit and local config artifacts
-.streamlit/secrets.toml
-
 # IDE/local artifacts
 .cursor/
 .vscode/

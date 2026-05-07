@@ -430,7 +430,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     if update.effective_message:
         await update.effective_message.reply_text(
             "/start -> menu\n"
-            "Record import -> stores event and commits\n"
+            "Record note -> stores event and commits\n"
             "Ask your life -> search across life_log\n"
             "/today -> today's entry status",
             reply_markup=MENU,
@@ -566,7 +566,7 @@ async def record_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ConversationHandler.END
     result, err = await _run_with_thinking(
         msg,
-        "Record import",
+        "Record note",
         lambda: _deps()["run_record_import"](msg.text),
     )
     if not err:

@@ -9,8 +9,8 @@ Thanks for your interest in improving Git-as-Life-Log.
    - `pip install -r requirements.txt`
 3. Add environment secrets locally (never commit secrets):
    - `GROQ_API_KEY`
-4. Run the app:
-   - `streamlit run streamlit_app/main.py`
+4. Run the Telegram bot:
+   - `python bot/telegram_bot.py`
 
 ## Pull request guidelines
 
