@@ -587,6 +587,9 @@ def build_application() -> Application:
         },
         fallbacks=[CommandHandler("cancel", cancel_handler)],
         allow_reentry=True,
+        per_chat=True,
+        per_user=True,
+        per_message=False,
     )
 
     app.add_handler(CommandHandler("start", start_handler))
