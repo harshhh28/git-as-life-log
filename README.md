@@ -68,8 +68,8 @@ Required environment variables:
 Bot behavior:
 
 - Unauthorized chat ids are rejected.
-- Duplicate record imports are ignored (same message in same minute bucket) using:
-  - `life_log/meta/processed_events.json`
+- Duplicate note imports are ignored (same message in same minute bucket) using:
+  - `life_log/meta/processed_messages.json`
 - Menu actions:
   - Record note
   - Ask your life
@@ -101,9 +101,9 @@ For nightly automation, use GitHub Actions cron to run `python scripts/run_night
 ## Agent operations
 
 - **Recorder Agent**
-  - Parses raw event text into structured metadata.
+  - Parses raw note text into structured metadata.
   - Writes/updates `life_log/calendar/...` and daily journal files.
-  - Commits with messages like: `record: add meeting for 2026-05-05 (webshop)`.
+  - Commits with messages like: `record: add note for 2026-05-05 (ideas)`.
 
 - **Summary Agent**
   - Aggregates daily notes and writes weekly/monthly summaries.
@@ -114,7 +114,7 @@ For nightly automation, use GitHub Actions cron to run `python scripts/run_night
   - Interprets natural-language question.
   - Uses lightweight semantic RAG over markdown chunks + git history and returns answer with sources.
   - Maintains indices in `life_log/meta/indices/`:
-    - `people_project_index.json`
+    - `entity_index.json`
     - `semantic_chunks_index.json`
 
 - **Life-Guard Agent**
@@ -125,11 +125,11 @@ For nightly automation, use GitHub Actions cron to run `python scripts/run_night
 ## End-to-end scenario
 
 1. In Telegram, run `/start` and open the bot menu.
-2. Use **Record note** with a raw event and confirm daily/calendar files were updated.
+2. Use **Record note** with any raw note text and confirm daily/calendar files were updated.
 3. Send the same record text again in the same minute and confirm duplicate is ignored.
 4. Use **Summarize today** and verify response text is generated.
 5. Use **Summarize week** and confirm summary files are written.
-6. Use **Ask your life** and ask: `When did I last meet @alice?`
+6. Use **Ask your life** and ask: `What notes mention @alice?`
 7. Use **/today** to verify entries, gaps, and quick stats.
 8. Use **Flush all data** only in test data scenarios.
 

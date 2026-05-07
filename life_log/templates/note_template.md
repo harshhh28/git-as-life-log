@@ -1,20 +1,20 @@
 ---
-type: meeting
-project: unknown
+type: note
+topic: general
 people: []
 start: 1970-01-01T00:00
 end: 1970-01-01T00:30
 mood: neutral
 ---
 
-# Meeting Note
+# Note
 
-## Agenda
+## Details
 - 
 
-## Discussion
+## Context
 - 
 
-## Action Items
+## Next Steps
 - 
 

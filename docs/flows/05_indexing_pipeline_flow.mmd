@@ -10,5 +10,5 @@ flowchart TD
   embed --> makeIndex[CreateSemanticIndexObject]
   noEmbed --> makeIndex
 
-  makeIndex --> save[Writesemantic_chunks_index_json]
+  makeIndex --> save[WriteSemanticChunksIndexJson]
   save --> done[IndexReadyForTopKRetrieval]

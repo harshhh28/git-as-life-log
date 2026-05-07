@@ -58,7 +58,7 @@ def _deps():
     from agents.orchestrator import (
         LIFE_LOG_ROOT,
         run_life_hygiene,
-        run_record_import,
+        run_record_note,
         run_search,
         run_summarize_month,
         run_summarize_yesterday,
@@ -68,7 +68,7 @@ def _deps():
     return {
         "LIFE_LOG_ROOT": LIFE_LOG_ROOT,
         "run_life_hygiene": run_life_hygiene,
-        "run_record_import": run_record_import,
+        "run_record_note": run_record_note,
         "run_search": run_search,
         "run_summarize_month": run_summarize_month,
         "run_summarize_yesterday": run_summarize_yesterday,
@@ -78,8 +78,8 @@ def _deps():
     }
 
 
-def _processed_events_path() -> Path:
-    return _deps()["LIFE_LOG_ROOT"] / "meta" / "processed_events.json"
+def _processed_messages_path() -> Path:
+    return _deps()["LIFE_LOG_ROOT"] / "meta" / "processed_messages.json"
 
 
 def _load_config() -> BotConfig:
@@ -115,8 +115,8 @@ async def _reject_unauthorized(update: Update) -> None:
         await update.effective_message.reply_text(msg)
 
 
-def _load_processed_events() -> dict[str, Any]:
-    processed_path = _processed_events_path()
+def _load_processed_messages() -> dict[str, Any]:
+    processed_path = _processed_messages_path()
     if not processed_path.exists():
         return {"items": []}
     try:
@@ -125,8 +125,8 @@ def _load_processed_events() -> dict[str, Any]:
         return {"items": []}
 
 
-def _save_processed_events(data: dict[str, Any]) -> None:
-    processed_path = _processed_events_path()
+def _save_processed_messages(data: dict[str, Any]) -> None:
+    processed_path = _processed_messages_path()
     processed_path.parent.mkdir(parents=True, exist_ok=True)
     processed_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -138,13 +138,13 @@ def _message_hash(message_text: str, bucket_dt: datetime) -> str:
 
 
 def _is_duplicate_message(message_text: str, bucket_dt: datetime) -> bool:
-    data = _load_processed_events()
+    data = _load_processed_messages()
     digest = _message_hash(message_text, bucket_dt)
     return any(item.get("hash") == digest for item in data.get("items", []))
 
 
 def _register_message(message_text: str, bucket_dt: datetime) -> None:
-    data = _load_processed_events()
+    data = _load_processed_messages()
     digest = _message_hash(message_text, bucket_dt)
     data.setdefault("items", []).append(
         {
@@ -155,7 +155,7 @@ def _register_message(message_text: str, bucket_dt: datetime) -> None:
     )
     # Keep recent history bounded.
     data["items"] = data["items"][-5000:]
-    _save_processed_events(data)
+    _save_processed_messages(data)
 
 
 def _clip_text(text: str, limit: int = TELEGRAM_MAX_CHARS) -> str:
@@ -321,15 +321,15 @@ def _build_today_report() -> str:
     if "## Highlights" in text:
         categories.append("highlights")
     lines = text.splitlines()
-    event_titles: list[str] = []
+    note_titles: list[str] = []
     details: list[str] = []
     people: list[str] = []
     for line in lines:
         stripped = line.strip()
-        if stripped.startswith("## Meeting:") or stripped.startswith("## Event:"):
-            title = stripped.replace("## Meeting:", "").replace("## Event:", "").strip()
+        if stripped.startswith("## Note:"):
+            title = stripped.replace("## Note:", "").strip()
             if title and title.lower() not in {"none", "unknown", "n/a", "general"}:
-                event_titles.append(title)
+                note_titles.append(title)
         if stripped.startswith("- Details:") or stripped.startswith("- Notes:"):
             note = stripped.replace("- Details:", "").replace("- Notes:", "").strip()
             if note and note.lower() not in {"none", "unknown", "n/a"}:
@@ -343,8 +343,8 @@ def _build_today_report() -> str:
     if details:
         cleaned_details = [d.strip().rstrip(".") for d in details[:3]]
         activity_parts.extend(cleaned_details)
-    if event_titles:
-        cleaned_titles = [t.strip().rstrip(".") for t in event_titles[:2]]
+    if note_titles:
+        cleaned_titles = [t.strip().rstrip(".") for t in note_titles[:2]]
         activity_parts.extend(cleaned_titles)
 
     def _smart_title(text_value: str) -> str:
@@ -430,7 +430,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     if update.effective_message:
         await update.effective_message.reply_text(
             "/start -> menu\n"
-            "Record note -> stores event and commits\n"
+            "Record note -> stores your note and commits\n"
             "Ask your life -> search across life_log\n"
             "/today -> today's entry status",
             reply_markup=MENU,
@@ -467,10 +467,10 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     action = query.data
     if action == "menu_record":
-        await query.message.reply_text("Send raw event text to record.")
+        await query.message.reply_text("Send any raw note text to record.")
         return AWAITING_RECORD_TEXT
     if action == "menu_ask":
-        await query.message.reply_text("Send your question (example: When did I last meet @alice?)")
+        await query.message.reply_text("Send your question (example: What did I do today?)")
         return AWAITING_QUESTION_TEXT
     if action == "menu_today":
         result, err = await _run_with_thinking(
@@ -567,14 +567,14 @@ async def record_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     result, err = await _run_with_thinking(
         msg,
         "Record note",
-        lambda: _deps()["run_record_import"](msg.text),
+        lambda: _deps()["run_record_note"](msg.text),
     )
     if not err:
         _register_message(msg.text, message_time)
         summary = result.get("metadata", {}).get("summary", "Recorded successfully.")
         text = _format_result("ok", summary, result=result)
     else:
-        text = _format_result("error", "Unable to record this event right now.")
+        text = _format_result("error", "Unable to record this note right now.")
     await _send_response(msg, text)
     await _send_menu(msg)
     return ConversationHandler.END

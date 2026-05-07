@@ -1,6 +1,6 @@
 flowchart TD
-  question[UserQuestion] --> fastPathCheck{LastMeetPersonPattern}
-  fastPathCheck -->|Yes| deterministic[DeterministicMeetingLookup]
+  question[UserQuestion] --> fastPathCheck{LastPersonMentionPattern}
+  fastPathCheck -->|Yes| deterministic[DeterministicPersonNoteLookup]
   deterministic --> detResult[ReturnHighConfidenceAnswer]
 
   fastPathCheck -->|No| ragPrep[LoadOrBuildSemanticIndex]

@@ -11,8 +11,8 @@ import frontmatter
 from core.time_utils import ist_now
 
 REQUIRED_KEYS_BY_TYPE: dict[str, tuple[str, ...]] = {
-    "meeting": ("type", "project", "people", "start", "end", "mood"),
-    "journal": ("type", "date", "project", "people", "mood"),
+    "note": ("type", "topic", "people", "start", "end", "mood"),
+    "journal": ("type", "date", "topic", "people", "mood"),
 }
 
 
@@ -88,12 +88,7 @@ def monthly_file_path(root: Path, target_date: date) -> Path:
     return root / "journal" / "monthly" / f"{target_date.year}-{target_date.month:02d}.md"
 
 
-def render_meeting_section(meta: dict[str, Any]) -> str:
-    # Backward-compatible alias to event section.
-    return render_event_section(meta)
-
-
-def render_event_section(meta: dict[str, Any]) -> str:
+def render_note_section(meta: dict[str, Any]) -> str:
     raw_people = meta.get("people", [])
     if raw_people is None:
         raw_people = []
@@ -101,7 +96,7 @@ def render_event_section(meta: dict[str, Any]) -> str:
         raw_people = [raw_people]
     people = ", ".join(str(p) for p in raw_people if str(p).strip()) or "n/a"
     return (
-        f"## Event: {meta.get('project', 'general')}\n"
+        f"## Note: {meta.get('topic', 'general')}\n"
         f"- People: {people}\n"
         f"- Start: {meta.get('start', 'n/a')}\n"
         f"- End: {meta.get('end', 'n/a')}\n"

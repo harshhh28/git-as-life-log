@@ -60,7 +60,7 @@ def summarize_week(
     task = Task(
         description=(
             "Summarize this week of daily logs into markdown with sections:\n"
-            "Highlights, Metrics (meetings/projects/workouts), Risks, Next Week Focus.\n"
+            "Highlights, Metrics (notes/people/habits), Risks, Next Week Focus.\n"
             "Include concrete counts when possible.\n\n"
             f"ENTRIES:\n{source_text}"
         ),

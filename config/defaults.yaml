@@ -11,4 +11,4 @@ life_guard:
   auto_fix: true
 
 search:
-  index_file: "life_log/meta/indices/people_project_index.json"
+  index_file: "life_log/meta/indices/entity_index.json"

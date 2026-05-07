@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LIFE_LOG_ROOT = REPO_ROOT / "life_log"
 
 
-def run_record_import(raw_text: str) -> dict:
+def run_record_note(raw_text: str) -> dict:
     result = run_recorder(REPO_ROOT, LIFE_LOG_ROOT, raw_text)
     return {
         "daily_path": result.daily_path,

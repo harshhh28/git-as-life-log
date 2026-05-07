@@ -15,7 +15,7 @@ from core.markdown_store import (
     daily_file_path,
     parse_json_from_text,
     render_daily_body,
-    render_event_section,
+    render_note_section,
     validate_metadata,
     write_markdown,
 )
@@ -33,8 +33,8 @@ class RecorderResult:
 def _recorder_agent() -> Agent:
     return Agent(
         role="Life Log Recorder",
-        goal="Extract structured metadata from unstructured life event text.",
-        backstory="You normalize personal notes into strict event metadata.",
+        goal="Extract structured metadata from unstructured note text.",
+        backstory="You normalize personal notes into strict note metadata.",
         llm=build_groq_llm(model="llama-3.1-8b-instant", temperature=0.1),
         verbose=False,
     )
@@ -114,7 +114,7 @@ def _extract_explicit_date(raw_text: str) -> date | None:
     return None
 
 
-def _resolve_event_date(raw_text: str) -> date:
+def _resolve_note_date(raw_text: str) -> date:
     if not _raw_text_has_date(raw_text):
         return ist_today()
     explicit_date = _extract_explicit_date(raw_text)
@@ -134,8 +134,8 @@ def run_recorder(repo_root: Path, life_log_root: Path, raw_text: str) -> Recorde
     today_ist = ist_today().isoformat()
     task = Task(
         description=(
-            "Parse this raw event text and return JSON only with keys: "
-            "type, project, people, start, end, mood, summary.\n\n"
+            "Parse this raw note text and return JSON only with keys: "
+            "type, topic, people, start, end, mood, summary.\n\n"
             "Interpret all date/time values in IST if timezone is not explicitly provided. "
             f"If the user gives time but no date, use today's IST date: {today_ist}. "
             "Prefer ISO format.\n\n"
@@ -146,18 +146,19 @@ def run_recorder(repo_root: Path, life_log_root: Path, raw_text: str) -> Recorde
     )
     parsed_text = str(Crew(agents=[agent], tasks=[task], verbose=False).kickoff())
     metadata = parse_json_from_text(parsed_text)
-    metadata.setdefault("type", "event")
+    metadata.setdefault("type", "note")
     metadata.setdefault("mood", "neutral")
     metadata.setdefault("people", [])
+    metadata.setdefault("topic", "general")
     metadata.setdefault("summary", raw_text.strip())
     if not metadata.get("summary"):
         metadata["summary"] = raw_text.strip()
-    if not metadata.get("project") or str(metadata.get("project")).lower() in {
+    if not metadata.get("topic") or str(metadata.get("topic")).lower() in {
         "none",
         "null",
         "n/a",
     }:
-        metadata["project"] = "general"
+        metadata["topic"] = "general"
     if not metadata.get("mood") or str(metadata.get("mood")).lower() in {"none", "null", "n/a"}:
         metadata["mood"] = "neutral"
     validation = validate_metadata(metadata, entry_type=metadata["type"])
@@ -165,18 +166,18 @@ def run_recorder(repo_root: Path, life_log_root: Path, raw_text: str) -> Recorde
         raise ValueError(f"Recorder extracted invalid metadata. Missing: {validation.missing_keys}")
     metadata = validation.normalized
 
-    event_date = _resolve_event_date(raw_text)
+    note_date = _resolve_note_date(raw_text)
     if not metadata.get("start"):
-        metadata["start"] = f"{event_date.isoformat()}T00:00+05:30"
+        metadata["start"] = f"{note_date.isoformat()}T00:00+05:30"
     if not metadata.get("end"):
         metadata["end"] = metadata["start"]
     start_dt = parse_user_datetime_ist(str(metadata["start"]))
     # Always anchor date from raw input (or IST today fallback), never trust LLM date blindly.
-    start_dt = start_dt.replace(year=event_date.year, month=event_date.month, day=event_date.day)
+    start_dt = start_dt.replace(year=note_date.year, month=note_date.month, day=note_date.day)
     metadata["start"] = to_ist_iso(start_dt)
     if metadata.get("end"):
         end_dt = parse_user_datetime_ist(str(metadata["end"]))
-        end_dt = end_dt.replace(year=event_date.year, month=event_date.month, day=event_date.day)
+        end_dt = end_dt.replace(year=note_date.year, month=note_date.month, day=note_date.day)
         metadata["end"] = to_ist_iso(end_dt)
     target_day = start_dt.date()
     month_dir = life_log_root / "calendar" / f"{target_day.year}-{target_day.month:02d}"
@@ -187,24 +188,24 @@ def run_recorder(repo_root: Path, life_log_root: Path, raw_text: str) -> Recorde
         daily_meta = {
             "type": "journal",
             "date": target_day.isoformat(),
-            "project": metadata.get("project", "personal"),
+            "topic": metadata.get("topic", "personal"),
             "people": metadata.get("people", []),
             "mood": metadata.get("mood", "neutral"),
             "tags": [],
         }
         write_markdown(daily_path, daily_meta, render_daily_body())
 
-    append_markdown_section(calendar_path, metadata, render_event_section(metadata))
+    append_markdown_section(calendar_path, metadata, render_note_section(metadata))
     append_markdown_section(
         daily_path,
         {"type": "journal", "date": target_day.isoformat()},
-        render_event_section(metadata),
+        render_note_section(metadata),
     )
 
     git = GitStore(repo_root)
     commit_msg = (
-        f"record: add {metadata.get('type', 'event')} for {target_day.isoformat()} "
-        f"({metadata.get('project', 'unknown')})"
+        f"record: add {metadata.get('type', 'note')} for {target_day.isoformat()} "
+        f"({metadata.get('topic', 'unknown')})"
     )
     result = git.commit_paths([calendar_path, daily_path], commit_msg)
     return RecorderResult(

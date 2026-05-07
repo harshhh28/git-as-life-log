@@ -41,7 +41,7 @@ def run_life_guard(
             metadata = {
                 "type": "journal",
                 "date": d.isoformat(),
-                "project": "personal",
+                "topic": "personal",
                 "people": [],
                 "mood": "neutral",
                 "tags": [],
@@ -57,7 +57,7 @@ def run_life_guard(
                 normalized = validation.normalized
                 normalized.setdefault("type", "journal")
                 normalized.setdefault("date", d.isoformat())
-                normalized.setdefault("project", "personal")
+                normalized.setdefault("topic", "personal")
                 normalized.setdefault("people", [])
                 normalized.setdefault("mood", "neutral")
                 write_markdown(p, normalized, body or render_daily_body())
