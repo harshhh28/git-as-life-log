@@ -143,8 +143,8 @@ def summarize_today(life_log_root: Path, target_day: date | None = None) -> str:
     p = daily_file_path(life_log_root, target_day)
     if not p.exists():
         return "No entries found for today yet."
-    
-    source_text = p.read_text(encoding='utf-8')
+
+    source_text = p.read_text(encoding="utf-8")
     if not source_text.strip():
         return "Today's entry is empty."
 
@@ -160,4 +160,3 @@ def summarize_today(life_log_root: Path, target_day: date | None = None) -> str:
         agent=agent,
     )
     return str(Crew(agents=[agent], tasks=[task], verbose=False).kickoff())
-

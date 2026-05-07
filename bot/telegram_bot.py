@@ -5,7 +5,6 @@ import hashlib
 import html
 import json
 import os
-import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -60,8 +59,8 @@ def _deps():
         run_record_note,
         run_search,
         run_summarize_month,
-        run_summarize_yesterday,
         run_summarize_today,
+        run_summarize_yesterday,
     )
     from core.time_utils import IST, ist_now, ist_today
 
@@ -268,9 +267,6 @@ def _summary_answer_from_result(result: dict[str, Any]) -> str:
     return f"For {period}, {lines[0]}. Also: {lines[1]}."
 
 
-
-
-
 async def _run_with_thinking(message, label: str, work):
     thinking = await message.reply_text(f"{label}... thinking")
     task = asyncio.create_task(asyncio.to_thread(work))
@@ -288,9 +284,6 @@ async def _run_with_thinking(message, label: str, work):
     except Exception:
         await thinking.edit_text(f"{label}... failed")
         return None, "error"
-
-
-
 
 
 def _flush_life_log_data() -> dict[str, Any]:
@@ -366,9 +359,7 @@ async def today_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         if not err:
             enriched_result = dict(result)
             enriched_result["answer"] = result.get("answer", "")
-            text = _format_result(
-                "ok", "Today's summary generated.", result=enriched_result
-            )
+            text = _format_result("ok", "Today's summary generated.", result=enriched_result)
         else:
             text = _format_result("error", "Unable to summarize today right now.")
         await _send_response(update.effective_message, text)
@@ -408,9 +399,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         if not err:
             enriched_result = dict(result)
             enriched_result["answer"] = result.get("answer", "")
-            text = _format_result(
-                "ok", "Today's summary generated.", result=enriched_result
-            )
+            text = _format_result("ok", "Today's summary generated.", result=enriched_result)
         else:
             text = _format_result("error", "Unable to summarize today right now.")
         await _send_response(query.message, text)

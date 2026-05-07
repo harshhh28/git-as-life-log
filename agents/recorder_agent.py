@@ -125,9 +125,11 @@ def _resolve_note_date(raw_text: str) -> date:
         return ist_today()
     if re.search(r"\byesterday\b", lowered):
         from datetime import timedelta
+
         return ist_today() - timedelta(days=1)
     if re.search(r"\btomorrow\b", lowered):
         from datetime import timedelta
+
         return ist_today() + timedelta(days=1)
 
     explicit_date = _extract_explicit_date(raw_text)

@@ -47,6 +47,8 @@ Recommended setup:
 
 - Run lint checks:
   - `python -m ruff check .`
+- Auto-fix lint issues:
+  - `python -m ruff check --fix .`
 - Run formatting:
   - `python -m ruff format .`
 - Verify formatting without changes:
