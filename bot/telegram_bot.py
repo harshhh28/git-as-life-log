@@ -57,7 +57,6 @@ class BotConfig:
 def _deps():
     from agents.orchestrator import (
         LIFE_LOG_ROOT,
-        run_life_hygiene,
         run_record_note,
         run_search,
         run_summarize_month,
@@ -67,7 +66,6 @@ def _deps():
 
     return {
         "LIFE_LOG_ROOT": LIFE_LOG_ROOT,
-        "run_life_hygiene": run_life_hygiene,
         "run_record_note": run_record_note,
         "run_search": run_search,
         "run_summarize_month": run_summarize_month,
@@ -269,18 +267,7 @@ def _summary_answer_from_result(result: dict[str, Any]) -> str:
     return f"For {period}, {lines[0]}. Also: {lines[1]}."
 
 
-def _hygiene_answer_from_result(result: dict[str, Any]) -> str:
-    created = result.get("created_files", []) or []
-    fixed = result.get("fixed_files", []) or []
-    if not created and not fixed:
-        return "Life hygiene completed. No issues were found in recent entries."
-    parts: list[str] = []
-    if fixed:
-        parts.append(f"fixed {len(fixed)} file(s)")
-    if created:
-        parts.append(f"created {len(created)} file(s)")
-    details = " and ".join(parts)
-    return f"Life hygiene completed and {details}."
+
 
 
 async def _run_with_thinking(message, label: str, work):
@@ -471,24 +458,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         await _send_response(query.message, text)
         await _send_menu(query.message)
         return ConversationHandler.END
-    if action == "menu_hygiene":
-        result, err = await _run_with_thinking(
-            query.message,
-            "Run life hygiene",
-            lambda: _deps()["run_life_hygiene"](),
-        )
-        if not err:
-            enriched_result = dict(result)
-            enriched_result["answer"] = _hygiene_answer_from_result(result)
-            sources = [f"FILE: {result['report_path']}"] if result.get("report_path") else []
-            text = _format_result(
-                "ok", "Life hygiene check completed.", result=enriched_result, sources=sources
-            )
-        else:
-            text = _format_result("error", "Unable to run hygiene check right now.")
-        await _send_response(query.message, text)
-        await _send_menu(query.message)
-        return ConversationHandler.END
+
     return ConversationHandler.END
 
 

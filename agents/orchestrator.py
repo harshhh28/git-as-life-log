@@ -34,14 +34,7 @@ def run_summarize_month() -> dict:
     return {"summary_path": result.summary_path, "period": result.period, "commit": result.commit}
 
 
-def run_life_hygiene() -> dict:
-    report = run_life_guard(REPO_ROOT, LIFE_LOG_ROOT, lookback_days=14, auto_fix=True)
-    return {
-        "report_path": report.report_path,
-        "created_files": report.created_files,
-        "fixed_files": report.fixed_files,
-        "commit": report.commit,
-    }
+
 
 
 def run_search(question: str) -> dict:
